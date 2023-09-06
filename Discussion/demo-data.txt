@@ -1,0 +1,370 @@
+dbsrv1:~/csc343/phase2$ psql csc343h-yangmax
+psql (10.19 (Ubuntu 10.19-0ubuntu0.18.04.1), server 10.18 (Ubuntu 10.18-0ubuntu0.18.04.1))
+Type "help" for help.
+
+csc343h-yangmax=> \i schema.ddl
+psql:schema.ddl:1: NOTICE:  drop cascades to 12 other objects
+DETAIL:  drop cascades to type myanimelist.type
+drop cascades to type myanimelist.rating
+drop cascades to type myanimelist.animescore
+drop cascades to table myanimelist.anime
+drop cascades to table myanimelist.genre
+drop cascades to type myanimelist.gender
+drop cascades to table myanimelist.maluser
+drop cascades to table myanimelist.favorites
+drop cascades to type myanimelist.userscore
+drop cascades to table myanimelist.review
+drop cascades to type myanimelist.categoryname
+drop cascades to table myanimelist.scores
+DROP SCHEMA
+CREATE SCHEMA
+SET
+CREATE DOMAIN
+CREATE DOMAIN
+CREATE DOMAIN
+CREATE TABLE
+CREATE TABLE
+CREATE DOMAIN
+CREATE TABLE
+CREATE TABLE
+CREATE DOMAIN
+CREATE TABLE
+CREATE DOMAIN
+CREATE TABLE
+csc343h-yangmax=> \i myanimelistData.sql
+psql:myanimelistData.sql:1: NOTICE:  table "tempuser" does not exist, skipping
+DROP TABLE
+psql:myanimelistData.sql:2: NOTICE:  table "tempfavorites" does not exist, skipping
+DROP TABLE
+psql:myanimelistData.sql:3: NOTICE:  table "tempreview" does not exist, skipping
+DROP TABLE
+psql:myanimelistData.sql:4: NOTICE:  table "tempscores" does not exist, skipping
+DROP TABLE
+psql:myanimelistData.sql:5: NOTICE:  view "joinedfavorites" does not exist, skipping
+DROP VIEW
+psql:myanimelistData.sql:6: NOTICE:  view "joinedreviews" does not exist, skipping
+DROP VIEW
+psql:myanimelistData.sql:7: NOTICE:  view "joinedscores" does not exist, skipping
+DROP VIEW
+COPY 13881
+COPY 40551
+CREATE TABLE
+COPY 116130
+INSERT 0 116130
+CREATE TABLE
+COPY 383073
+CREATE VIEW
+INSERT 0 46458
+CREATE TABLE
+COPY 130518
+CREATE VIEW
+INSERT 0 27251
+CREATE TABLE
+COPY 960555
+CREATE VIEW
+INSERT 0 136255
+psql:myanimelistData.sql:93: NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to view joinedfavorites
+drop cascades to view joinedreviews
+DROP TABLE
+DROP TABLE
+DROP TABLE
+psql:myanimelistData.sql:96: NOTICE:  drop cascades to view joinedscores
+DROP TABLE
+csc343h-yangmax=> \d Anime
+                Table "myanimelist.anime"
+  Column   |    Type    | Collation | Nullable | Default 
+-----------+------------+-----------+----------+---------
+ aid       | integer    |           | not null | 
+ title     | text       |           | not null | 
+ type      | type       |           | not null | 
+ episodes  | integer    |           | not null | 
+ source    | text       |           | not null | 
+ rating    | rating     |           | not null | 
+ score     | animescore |           | not null | 
+ scoredby  | integer    |           | not null | 
+ members   | integer    |           | not null | 
+ favorites | integer    |           | not null | 
+Indexes:
+    "anime_pkey" PRIMARY KEY, btree (aid)
+Check constraints:
+    "anime_episodes_check" CHECK (episodes >= 0)
+    "anime_favorites_check" CHECK (favorites >= 0)
+    "anime_members_check" CHECK (members >= 0)
+    "anime_scoredby_check" CHECK (scoredby >= 0)
+Referenced by:
+    TABLE "favorites" CONSTRAINT "favorites_aid_fkey" FOREIGN KEY (aid) REFERENCES anime(aid)
+    TABLE "genre" CONSTRAINT "genre_aid_fkey" FOREIGN KEY (aid) REFERENCES anime(aid)
+    TABLE "review" CONSTRAINT "review_aid_fkey" FOREIGN KEY (aid) REFERENCES anime(aid)
+
+csc343h-yangmax=> \d Genre
+             Table "myanimelist.genre"
+ Column |  Type   | Collation | Nullable | Default 
+--------+---------+-----------+----------+---------
+ aid    | integer |           | not null | 
+ genre  | text    |           | not null | 
+Indexes:
+    "genre_pkey" PRIMARY KEY, btree (aid, genre)
+Foreign-key constraints:
+    "genre_aid_fkey" FOREIGN KEY (aid) REFERENCES anime(aid)
+
+csc343h-yangmax=> \d MALUser
+              Table "myanimelist.maluser"
+   Column    |  Type   | Collation | Nullable | Default 
+-------------+---------+-----------+----------+---------
+ uid         | integer |           | not null | 
+ gender      | gender  |           | not null | 
+ dateofbirth | date    |           | not null | 
+Indexes:
+    "maluser_pkey" PRIMARY KEY, btree (uid)
+Check constraints:
+    "maluser_dateofbirth_check" CHECK (dateofbirth < CURRENT_DATE)
+Referenced by:
+    TABLE "favorites" CONSTRAINT "favorites_uid_fkey" FOREIGN KEY (uid) REFERENCES maluser(uid)
+    TABLE "review" CONSTRAINT "review_uid_fkey" FOREIGN KEY (uid) REFERENCES maluser(uid)
+
+csc343h-yangmax=> \d Favorites
+           Table "myanimelist.favorites"
+ Column |  Type   | Collation | Nullable | Default 
+--------+---------+-----------+----------+---------
+ uid    | integer |           | not null | 
+ aid    | integer |           | not null | 
+Indexes:
+    "favorites_pkey" PRIMARY KEY, btree (uid, aid)
+Foreign-key constraints:
+    "favorites_aid_fkey" FOREIGN KEY (aid) REFERENCES anime(aid)
+    "favorites_uid_fkey" FOREIGN KEY (uid) REFERENCES maluser(uid)
+
+csc343h-yangmax=> \d Review
+                Table "myanimelist.review"
+    Column    |   Type    | Collation | Nullable | Default 
+--------------+-----------+-----------+----------+---------
+ rid          | integer   |           | not null | 
+ uid          | integer   |           | not null | 
+ aid          | integer   |           | not null | 
+ overallscore | userscore |           | not null | 
+Indexes:
+    "review_pkey" PRIMARY KEY, btree (rid)
+Foreign-key constraints:
+    "review_aid_fkey" FOREIGN KEY (aid) REFERENCES anime(aid)
+    "review_uid_fkey" FOREIGN KEY (uid) REFERENCES maluser(uid)
+Referenced by:
+    TABLE "scores" CONSTRAINT "scores_rid_fkey" FOREIGN KEY (rid) REFERENCES review(rid)
+
+csc343h-yangmax=> \d Scores
+                Table "myanimelist.scores"
+  Column  |     Type     | Collation | Nullable | Default 
+----------+--------------+-----------+----------+---------
+ rid      | integer      |           | not null | 
+ category | categoryname |           | not null | 
+ score    | userscore    |           | not null | 
+Indexes:
+    "scores_pkey" PRIMARY KEY, btree (rid, category)
+Foreign-key constraints:
+    "scores_rid_fkey" FOREIGN KEY (rid) REFERENCES review(rid)
+
+csc343h-yangmax=> select count(*) from Anime;
+ count 
+-------
+ 13881
+(1 row)
+
+csc343h-yangmax=> select count(*) from Genre;
+ count 
+-------
+ 40551
+(1 row)
+
+csc343h-yangmax=> select count(*) from MALUser;
+ count  
+--------
+ 116130
+(1 row)
+
+csc343h-yangmax=> select count(*) from Favorites;
+ count 
+-------
+ 46458
+(1 row)
+
+csc343h-yangmax=> select count(*) from Review;
+ count 
+-------
+ 27251
+(1 row)
+
+csc343h-yangmax=> select count(*) from Scores;
+ count  
+--------
+ 136255
+(1 row)
+
+csc343h-yangmax=> select * from Anime where score >= 5;
+
+  aid  |                                                title                                                 |  type   | episodes |    source     | rating | score | scoredby | members | favorites 
+-------+------------------------------------------------------------------------------------------------------+---------+----------+---------------+--------+-------+----------+---------+-----------
+ 11013 | Inu x Boku SS                                                                                        | TV      |       12 | Manga         | PG-13  |  7.63 |   139250 |  283882 |      2809
+  2104 | Seto no Hanayome                                                                                     | TV      |       26 | Manga         | PG-13  |  7.89 |    91206 |  204003 |      2579
+  5262 | Shugo Chara!! Doki                                                                                   | TV      |       51 | Manga         | PG     |  7.55 |    37129 |   70127 |       802
+   721 | Princess Tutu                                                                                        | TV      |       38 | Original      | PG-13  |  8.21 |    36501 |   93312 |      3344
+ 12365 | Bakuman. 3rd Season                                                                                  | TV      |       25 | Manga         | PG-13  |  8.67 |   107767 |  182765 |      2082
+  6586 | Yume-iro Pâtissière                                                                                  | TV      |       50 | Manga         | G      |  8.03 |    21618 |   45625 |       826
+   178 | Ultra Maniac                                                                                         | TV      |       26 | Manga         | G      |  7.26 |     9663 |   22778 |       122
+  2787 | Shakugan no Shana II (Second)                                                                        | TV      |       24 | Light novel   | PG-13  |  7.72 |   126085 |  220591 |      1075
+  4477 | Nodame Cantabile: Paris-hen                                                                          | TV      |       11 | Manga         | PG-13  |  8.24 |    53908 |   85660 |       282
+   853 | Ouran Koukou Host Club                                                                               | TV      |       26 | Manga         | PG-13  |  8.34 |   335137 |  538843 |     24072
+  4814 | Junjou Romantica 2                                                                                   | TV      |       12 | Manga         | PG-13  |  8.15 |    66565 |  108186 |      1123
+  7054 | Kaichou wa Maid-sama!                                                                                | TV      |       26 | Manga         | PG-13  |   8.2 |   315130 |  531292 |     14436
+ 11123 | Sekaiichi Hatsukoi 2                                                                                 | TV      |       12 | Manga         | PG-13  |  8.23 |    53285 |   89543 |       726
+ 14227 | Tonari no Kaibutsu-kun                                                                               | TV      |       13 | Manga         | PG-13  |  7.71 |   281448 |  482105 |      4064
+   269 | Bleach                                                                                               | TV      |      366 | Manga         | PG-13  |   7.9 |   433097 |  819284 |     40718
+    59 | Chobits                                                                                              | TV      |       26 | Manga         | PG-13  |  7.53 |   175388 |  317641 |      3271
+  6045 | Kimi ni Todoke                                                                                       | TV      |       25 | Manga         | PG-13  |  8.13 |   212710 |  417136 |      8041
+  1735 | Naruto: Shippuuden                                                                                   | TV      |      500 | Manga         | PG-13  |  8.18 |   385179 |  794112 |     42846
+   210 | Ranma ½                                                                                              | TV      |      161 | Manga         | R+     |  7.85 |    59911 |  134537 |      2742
+  4224 | Toradora!                                                                                            | TV      |       25 | Light novel   | PG-13  |  8.39 |   557898 |  910373 |     35322
+ 10030 | Bakuman. 2nd Season                                                                                  | TV      |       25 | Manga         | PG-13  |  8.49 |   122090 |  201720 |      1023
+    74 | Gakuen Alice                                                                                         | TV      |       26 | Manga         | G      |  7.77 |    33244 |   62951 |      1403
+  4722 | Skip Beat!                                                                                           | TV      |       25 | Manga         | PG-13  |  8.24 |    90699 |  164738 |      4668
+:q
+csc343h-yangmax=> select * from Genre where genre = 'Comedy';
+
+  aid  | genre  
+-------+--------
+ 11013 | Comedy
+  2104 | Comedy
+  5262 | Comedy
+   721 | Comedy
+ 12365 | Comedy
+   853 | Comedy
+  4814 | Comedy
+  7054 | Comedy
+ 11123 | Comedy
+ 10030 | Comedy
+    74 | Comedy
+  4722 | Comedy
+  3731 | Comedy
+  9863 | Comedy
+  7817 | Comedy
+  5690 | Comedy
+  1571 | Comedy
+  7674 | Comedy
+ 14713 | Comedy
+   233 | Comedy
+  9926 | Comedy
+  2564 | Comedy
+  3092 | Comedy
+:q
+csc343h-yangmax=> select * from MALUser where gender = 'Female';
+
+   uid   | gender | dateofbirth 
+---------+--------+-------------
+ 2255153 | Female | 1990-04-29
+ 1897606 | Female | 1995-01-01
+  327311 | Female | 1998-08-24
+ 3129315 | Female | 1996-09-26
+ 2485327 | Female | 1992-01-16
+ 2529849 | Female | 1999-08-30
+    5309 | Female | 1989-09-14
+  502599 | Female | 1994-04-13
+ 1537661 | Female | 1989-01-01
+ 2637159 | Female | 1985-10-19
+   82964 | Female | 1994-08-11
+  158248 | Female | 2003-02-10
+ 4918730 | Female | 1994-04-16
+  183036 | Female | 1992-01-20
+  167812 | Female | 1989-09-25
+     935 | Female | 1985-09-02
+  441584 | Female | 1999-07-04
+   57779 | Female | 1930-10-08
+ 1525261 | Female | 1995-11-01
+  406417 | Female | 1988-01-01
+   43988 | Female | 1989-01-19
+    4463 | Female | 1988-08-28
+  375026 | Female | 1993-03-06
+:q
+csc343h-yangmax=> select * from Favorites where aid = 33352;
+
+   uid   |  aid  
+---------+-------
+ 4890997 | 33352
+ 6908978 | 33352
+  185791 | 33352
+ 1478729 | 33352
+ 3346931 | 33352
+ 3896687 | 33352
+ 3964183 | 33352
+ 5457843 | 33352
+ 6014979 | 33352
+ 7056550 | 33352
+ 5566949 | 33352
+ 5238364 | 33352
+ 1076329 | 33352
+  210587 | 33352
+ 4575209 | 33352
+ 5128868 | 33352
+   29576 | 33352
+ 5522547 | 33352
+   39897 | 33352
+ 4683374 | 33352
+ 5461087 | 33352
+ 6193851 | 33352
+ 5242474 | 33352
+:q
+csc343h-yangmax=> select * from Review where overallScore > 5;
+
+  rid   |   uid   |  aid  | overallscore 
+--------+---------+-------+--------------
+  71375 | 1483841 |   249 |           10
+ 200277 | 4009925 |   918 |            9
+ 232838 | 4009925 | 33255 |            9
+ 242570 | 4009925 |  9863 |            9
+  32991 |  400898 |  8449 |            6
+  55501 |  364056 | 10163 |           10
+  33715 |  364056 |    25 |            9
+  17581 |  210936 |    63 |            9
+  67773 |  483115 |  2792 |           10
+ 200217 | 4870147 |  6746 |           10
+ 182271 | 4478831 | 11111 |           10
+  96469 | 1462387 |    48 |            9
+  34712 |  425659 |   156 |           10
+ 208456 | 4519876 | 16512 |            7
+  31526 |  156499 |  8726 |            9
+ 239968 |  500443 | 32995 |            8
+ 265503 | 5802184 | 35843 |            6
+ 123461 |  485217 | 19221 |            7
+  15128 |  127898 |    19 |           10
+ 182556 | 4474216 | 10620 |            9
+ 203856 | 4672746 |  5958 |            9
+  24599 |  210958 |  6347 |            8
+  21097 |  210958 |  2961 |            8
+:q
+csc343h-yangmax=> select * from Scores where category = 'Story';
+
+  rid   | category | score 
+--------+----------+-------
+      1 | Story    |     8
+      9 | Story    |     8
+     10 | Story    |    10
+     11 | Story    |     8
+     13 | Story    |     9
+     14 | Story    |     8
+     21 | Story    |     7
+     26 | Story    |     3
+     27 | Story    |     7
+     29 | Story    |     7
+     30 | Story    |     6
+     32 | Story    |     9
+     33 | Story    |     9
+     34 | Story    |     9
+     35 | Story    |     7
+     36 | Story    |     8
+     37 | Story    |     8
+     38 | Story    |     4
+     39 | Story    |     9
+     40 | Story    |     8
+     41 | Story    |     9
+     47 | Story    |     7
+     49 | Story    |     8
+:q
+csc343h-yangmax->
