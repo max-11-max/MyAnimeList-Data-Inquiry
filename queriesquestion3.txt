@@ -1,0 +1,188 @@
+-- Gender
+
+-- Intermediate view for the top 5 animes based on male user reviews
+-- Found male users and joined on their reviews, grouped on aID and ranked by the number of favorites
+CREATE VIEW t1 AS
+SELECT g1.aID, a1.title, g1.row_number
+FROM
+(SELECT aID, COUNT(aID), ROW_NUMBER() OVER (ORDER BY COUNT(aID) DESC)
+FROM (SELECT uID
+FROM maluser
+WHERE gender = 'Male') m1 JOIN
+Favorites ON m1.uID = Favorites.uID
+GROUP BY aID) g1 JOIN
+(SELECT aID, title FROM anime) a1 ON
+g1.aID = a1.aID
+WHERE g1.row_number <= 5;
+
+-- Intermediate view for the top 5 animes based on female user reviews
+-- Found female users and joined on their reviews, grouped on aID and ranked by the number of favorites
+CREATE VIEW t2 AS
+SELECT g1.aID, a1.title, g1.row_number
+FROM
+(SELECT aID, COUNT(aID), ROW_NUMBER() OVER (ORDER BY COUNT(aID) DESC)
+FROM (SELECT uID
+FROM maluser
+WHERE gender = 'Female') m1 JOIN
+Favorites ON m1.uID = Favorites.uID
+GROUP BY aID) g1 JOIN
+(SELECT aID, title FROM anime) a1 ON
+g1.aID = a1.aID
+WHERE g1.row_number <= 5;
+
+-- Intermediate view for the top 5 animes based on non-binary user reviews
+-- Found non-binary users and joined on their reviews, grouped on aID and ranked by the number of favorites
+CREATE VIEW t3 AS
+SELECT g1.aID, a1.title, g1.row_number
+FROM
+(SELECT aID, COUNT(aID), ROW_NUMBER() OVER (ORDER BY COUNT(aID) DESC)
+FROM (SELECT uID
+FROM maluser
+WHERE gender = 'Non-Binary') m1 JOIN
+Favorites ON m1.uID = Favorites.uID
+GROUP BY aID) g1 JOIN
+(SELECT aID, title FROM anime) a1 ON
+g1.aID = a1.aID
+WHERE g1.row_number <= 5;
+
+-- View for ranked top 5 animes per gender
+-- Combined previous 3 intermediate views
+CREATE VIEW GenderFavorites AS
+SELECT t1.row_number AS Rank, t1.title AS MaleFavoriteAnime,
+t2.title AS FemaleFavoriteAnime,
+t3.title AS NonBinaryFavoriteAnime
+FROM t1 JOIN t2 ON t1.row_number = t2.row_number
+JOIN t3 ON t1.row_number = t3.row_number
+ORDER BY t1.row_number;
+
+-- Age
+-- Intermediate view for classifying users into age groups by extracting year from user ages, and joining them with their favorite animes
+CREATE VIEW userFavorites AS
+SELECT Favorites.uID, aID, 
+	CASE
+		WHEN EXTRACT(YEAR FROM AGE(dateOfBirth)) <= 18 THEN '1 - 18'
+		WHEN EXTRACT(YEAR FROM AGE(dateOfBirth)) > 18 AND EXTRACT(YEAR FROM AGE(dateOfBirth)) <= 25 THEN '19 - 25'
+		WHEN EXTRACT(YEAR FROM AGE(dateOfBirth)) > 25 AND EXTRACT(YEAR FROM AGE(dateOfBirth)) <= 30 THEN '26 - 30'
+		WHEN EXTRACT(YEAR FROM AGE(dateOfBirth)) > 30 AND EXTRACT(YEAR FROM AGE(dateOfBirth)) <= 40 THEN '31 - 40'
+		ELSE '40+'
+	END as ageGroup
+FROM Favorites JOIN MALUser ON Favorites.uID = MALUser.uID;
+
+-- Intermediate view for counts for favorited animes by age group
+-- Grouped by anime and age group for favorite animes joined with anime to find their titles
+CREATE VIEW ageFavorites AS
+SELECT ageGroup, userFavorites.aID, title, COUNT(uID) as numFavorited
+FROM userFavorites JOIN Anime ON userFavorites.aID = Anime.aID
+GROUP BY userFavorites.aID, title, ageGroup;
+
+-- Intermediate view top 5 favorited animes in age group 1-18
+-- Ranked animes(row numbered to avoid potential tie conflicts) on the number of favorites from user data
+-- for only users within the first age group
+CREATE VIEW c1Favorites AS 
+SELECT *
+FROM (SELECT aID, title, ROW_NUMBER() OVER (ORDER BY numFavorited DESC)
+FROM ageFavorites
+WHERE ageGroup = '1 - 18') a
+WHERE row_number <= 5;
+
+-- Intermediate view for top 5 favorited animes in age group 19-25
+-- Ranked animes(row numbered to avoid potential tie conflicts) on the number of favorites from user data
+-- for only users within the second age group
+CREATE VIEW c2Favorites AS 
+SELECT *
+FROM (SELECT aID, title, ROW_NUMBER() OVER (ORDER BY numFavorited DESC)
+FROM ageFavorites
+WHERE ageGroup = '19 - 25') a
+WHERE row_number <= 5;
+
+-- Intermediate view for top 5 favorited animes in age group 26-30
+-- Ranked animes(row numbered to avoid potential tie conflicts) on the number of favorites from user data
+-- for only users within the third age group
+CREATE VIEW c3Favorites AS 
+SELECT *
+FROM (SELECT aID, title, ROW_NUMBER() OVER (ORDER BY numFavorited DESC)
+FROM ageFavorites
+WHERE ageGroup = '26 - 30') a
+WHERE row_number <= 5;
+
+-- Intermediate view for top 5 favorited animes in age group 31-40
+-- Ranked animes(row numbered to avoid potential tie conflicts) on the number of favorites from user data
+-- for only users within the fourth age group
+CREATE VIEW c4Favorites AS 
+SELECT *
+FROM (SELECT aID, title, ROW_NUMBER() OVER (ORDER BY numFavorited DESC)
+FROM ageFavorites
+WHERE ageGroup = '31 - 40') a
+WHERE row_number <= 5;
+
+-- Intermediate view for top 5 favorited animes in age group 40+
+-- Ranked animes(row numbered to avoid potential tie conflicts) on the number of favorites from user data
+-- for only users within the fifth age group
+CREATE VIEW c5Favorites AS 
+SELECT *
+FROM (SELECT aID, title, ROW_NUMBER() OVER (ORDER BY numFavorited DESC)
+FROM ageFavorites
+WHERE ageGroup = '40+') a
+WHERE row_number <= 5;
+
+-- View for ranked top 5 animes per age group
+-- Combined previous 4 intermediate views
+CREATE VIEW ageTop5 AS
+SELECT c1Favorites.row_number as rank, c1Favorites.title as top1to18, c2Favorites.title as top19to25, c3Favorites.title as top26to30, c4Favorites.title as top31to40, c5Favorites.title as top40Up
+FROM c1Favorites JOIN c2Favorites ON c1Favorites.row_number = c2Favorites.row_number JOIN c3Favorites ON c2Favorites.row_number = c3Favorites.row_number JOIN c4Favorites ON c3Favorites.row_number = c4Favorites.row_number JOIN c5Favorites ON c4Favorites.row_number = c5Favorites.row_number;
+
+
+-- Followup queries to investigate if these resulting top anime actually correspond to their 
+-- age/gender demographic genres
+
+-- FINDING their target audience
+
+-- Gender Target Audiences
+-- View for finding gender/age demographic genre with animes for top 5 anime for male users
+CREATE VIEW MaleGenre AS
+SELECT t1.title, genre.genre
+FROM t1 JOIN genre ON t1.aID = genre.aID
+WHERE genre.genre in ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei');
+
+-- View for finding gender/age demographic genre with animes for top 5 anime for female users
+CREATE VIEW FemaleGenre AS
+SELECT t2.title, genre.genre
+FROM t2 JOIN genre ON t2.aID = genre.aID
+WHERE genre.genre in ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei');
+
+-- View for finding gender/age demographic genre with animes for top 5 anime for non-binary users
+CREATE VIEW NonBinaryGenre AS
+SELECT t3.title, genre.genre
+FROM t3 JOIN genre ON t3.aID = genre.aID
+WHERE genre.genre in ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei');
+
+-- Age Target Audiences
+-- View for finding gender/age demographic genre with animes for top 5 anime for users age 1-18
+CREATE VIEW FirstAgeGenre AS
+SELECT c1favorites.title, genre.genre
+FROM c1favorites JOIN genre ON c1favorites.aID = genre.aID
+WHERE genre.genre in ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei');
+
+-- View for finding gender/age demographic genre with animes for top 5 anime for users age 19-25
+CREATE VIEW SecondAgeGenre AS
+SELECT c2favorites.title, genre.genre
+FROM c2favorites JOIN genre ON c2favorites.aID = genre.aID
+WHERE genre.genre in ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei');
+
+-- View for finding gender/age demographic genre with animes for top 5 anime for users age 26-30
+CREATE VIEW ThirdAgeGenre AS
+SELECT c3favorites.title, genre.genre
+FROM c3favorites JOIN genre ON c3favorites.aID = genre.aID
+WHERE genre.genre in ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei');
+
+-- View for finding gender/age demographic genre with animes for top 5 anime for users age 31-40
+CREATE VIEW FourthAgeGenre AS
+SELECT c4favorites.title, genre.genre
+FROM c4favorites JOIN genre ON c4favorites.aID = genre.aID
+WHERE genre.genre in ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei');
+
+-- View for finding gender/age demographic genre with animes for top 5 anime for users age 40+
+CREATE VIEW FifthAgeGenre AS
+SELECT c5favorites.title, genre.genre
+FROM c5favorites JOIN genre ON c5favorites.aID = genre.aID
+WHERE genre.genre in ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei');

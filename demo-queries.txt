@@ -1,0 +1,583 @@
+
+-- Importing a file such as this will let you quickly create a demo to hand
+-- in. You may edit this to customize it.  For instance, you may have your
+-- data in a csv file and need a different command to load it in, you
+-- may differently named files, or you may have your queries split into more
+-- files than expected here.
+--
+-- NOTE
+-- Added in tables as comments to show the resulting data, but also letting the file able to
+-- actually be imported with the necessary files, and the actual tables would be in place of
+-- the comments, not sure if this is how it is supposed to be done, but felt this was viable
+-- to show a demo, and actually let it be demoable
+\echo -------------------- Loading schema and data: -------------------- 
+\i schema.ddl
+\i myanimelistData.sql
+\echo
+\echo  -------------------- Investigative Question 1: ------------------ 
+\echo 
+\i queriesquestion1.txt
+\echo
+\echo What are the most popular media/production (type, source, episodes, rating) attributes?
+\echo (Popular based on score, members, favorites, and user review scores)
+\echo
+\echo Intermediate Query classifying animes with episode ranges
+SELECT * FROM EpisodesRanges;
+--  aid  | score | scoredby | members | favorites | ranges
+---------+-------+----------+---------+-----------+--------
+-- 11013 |  7.63 |   139250 |  283882 |      2809 | 2-12
+--  2104 |  7.89 |    91206 |  204003 |      2579 | 25-52
+--  5262 |  7.55 |    37129 |   70127 |       802 | 25-52
+--   721 |  8.21 |    36501 |   93312 |      3344 | 25-52
+-- 12365 |  8.67 |   107767 |  182765 |      2082 | 25-52
+--  6586 |  8.03 |    21618 |   45625 |       826 | 25-52
+--   178 |  7.26 |     9663 |   22778 |       122 | 25-52
+--...
+--(13881 rows)
+\echo
+\echo Intermediate Query for aggregating review scores per anime from review
+SELECT * FROM ReviewScores;
+--  aid  |  type   |    source     |         score          | ranges | scoredby
+---------+---------+---------------+------------------------+--------+----------
+--     1 | TV      | Original      |     9.1857142857142857 | 25-52  |   365465
+--     5 | Movie   | Original      |     8.5555555555555556 | 1      |   111344
+--     6 | TV      | Manga         |     8.5555555555555556 | 25-52  |   197843
+--     7 | TV      | Original      |     6.9090909090909091 | 25-52  |    31908
+--     8 | TV      | Manga         |     6.6666666666666667 | 25-52  |     4760
+--    15 | TV      | Manga         |     8.5833333333333333 | 53+    |    48825
+--    16 | TV      | Manga         |     8.0769230769230769 | 13-24  |    54404
+--    17 | TV      | Manga         |     8.7500000000000000 | 25-52  |     8885
+--    18 | TV      | Manga         |     7.2500000000000000 | 13-24  |    37675
+--    19 | TV      | Manga         |     9.0714285714285714 | 53+    |   118856
+--    20 | TV      | Manga         |     7.3376623376623377 | 53+    |   648605
+--...
+--(4750 rows)
+\echo
+\echo Ranked types by scores, members, favorites, and review scores
+\echo TypeRankings
+SELECT * FROM TypeRankings;
+-- scoretype |     avgscore     | memtype |      avgmembers       | favtype |     avgfavorites     | revtype |       avgreview
+-------------+------------------+---------+-----------------------+---------+----------------------+---------+------------------------
+-- TV        |  6.7079985247111 | TV      |    60206.817310056553 | TV      | 986.7145315957708385 | TV      | 7.21699036852772982395
+-- Special   | 6.32247912317326 | Movie   |    14787.046732837055 | Movie   | 119.2510339123242349 | Unknown |     7.1000000000000000
+-- OVA       | 6.22513675213676 | Special | 9280.6649269311064718 | Unknown |  44.5833333333333333 | Movie   | 7.06635461970253706997
+-- Movie     | 6.15445822994211 | Unknown | 8854.3333333333333333 | OVA     |  41.2370370370370370 | Special | 6.91990993070081541957
+-- ONA       |  5.4845945945946 | OVA     | 7716.4589743589743590 | ONA     |  23.4189189189189189 | Music   | 6.76794871794871794923
+-- Music     | 5.17650943396227 | ONA     | 4371.3675675675675676 | Special |  17.3575156576200418 | OVA     | 6.55556551622715248394
+-- Unknown   |                0 | Music   | 1169.0165094339622642 | Music   |   4.5554245283018868 | ONA     | 6.37944156918248173564
+--(7 rows)
+\echo
+\echo Ranked sources by scores, members, favorites, and review scores
+\echo SourceRankings
+SELECT * FROM SourceRankings;
+--  scoresource  |     avgscore     |   memsource   |      avgmembers       |   favsource   |     avgfavorites      |   revsource   |       avgreview        
+-----------------+------------------+---------------+-----------------------+---------------+-----------------------+---------------+------------------------
+-- Light novel   |            7.065 | Light novel   |   110803.435185185185 | Light novel   | 1211.9907407407407407 | Book          |     7.8431192990016519
+-- Manga         | 6.87911375661377 | Web manga     |    48673.571428571429 | Manga         |  722.3541666666666667 | Novel         | 7.45811178075434342750
+-- Novel         | 6.66888888888889 | Manga         |    46900.700727513228 | Web manga     |  671.4785714285714286 | Picture book  |     7.3041666666666667
+-- 4-koma manga  | 6.61236363636363 | 4-koma manga  |    40975.990909090909 | Novel         |  564.4239766081871345 | Manga         | 7.29530845765528412800
+-- Visual novel  | 6.49103409090909 | Novel         |    37794.982456140351 | 4-koma manga  |  340.8409090909090909 | Light novel   | 7.08744012830250588692
+-- Book          | 6.30944444444444 | Visual novel  |    22667.157954545455 | Visual novel  |  332.7454545454545455 | 4-koma manga  | 6.99730749343504807826
+-- Game          | 6.30366492146597 | Game          |    17600.122164048866 | Original      |  279.2837380879188441 | Other         |     6.9713980593775990
+-- Card game     | 6.26491228070175 | Original      |    17586.051952044267 | Game          |   86.6195462478184991 | Original      | 6.89423426665222869610
+-- Web manga     | 6.25935714285714 | Digital manga |    16260.800000000000 | Other         |   70.3333333333333333 | Game          | 6.68045558816639579163
+-- Unknown       |  6.0102941922394 | Card game     |    14720.000000000000 | Card game     |   65.0877192982456140 | Web manga     | 6.65650859072132423115
+-- Original      |  5.8307992622195 | Other         | 7777.1246819338422392 | Digital manga |   43.2000000000000000 | Visual novel  | 6.53785109509096573506
+-- Other         | 5.64312977099237 | Book          | 5015.0444444444444444 | Book          |   32.6777777777777778 | Digital manga |     6.5208333333333333
+-- Picture book  | 5.52172043010753 | Music         | 2954.2770700636942675 | Music         |   21.9554140127388535 | Unknown       | 6.47174683072334079060
+-- Radio         | 5.48888888888889 | Unknown       | 2088.6330205427339589 | Picture book  |    4.3118279569892473 | Music         |     6.2685897435897436
+-- Music         | 5.20050955414012 | Radio         | 1718.1111111111111111 | Unknown       |    4.0063403499873193 | Card game     |     6.1005347593582888
+-- Digital manga |            4.639 | Picture book  |  953.2903225806451613 | Radio         |    3.8888888888888889 | Radio         |     5.0000000000000000
+--(16 rows)
+\echo
+\echo Ranked animes partitioned by episode ranges by scores, members, favorites, and review scores
+\echo EpisodeRangeRankings
+SELECT * FROM EpisodeRangeRankings;
+-- scoreranges |     avgscore     | memranges |      avgmembers       | favranges |     avgfavorites      | revranges |       avgreview        
+---------------+------------------+-----------+-----------------------+-----------+-----------------------+-----------+------------------------
+-- 13-24       | 6.84259835315646 | 13-24     |    68285.404391582800 | 53+       | 1654.2011331444759207 | 53+       |     8.0688847584792433
+-- 25-52       | 6.79132639791937 | 53+       |    43882.424929178470 | 13-24     | 1092.0347666971637694 | 25-52     | 7.67355241591853260883
+-- 53+         | 6.78104815864022 | 25-52     |    34809.762028608583 | 25-52     |  822.9265279583875163 | 13-24     | 7.22167089853129720715
+-- 2-12        | 6.42600000000001 | 2-12      |    31745.083522012579 | 2-12      |  262.9728301886792453 | 0         | 6.98734381631440455167
+-- 1           | 5.95848498704466 | 1         | 8912.1246761164456638 | 0         |  240.8393351800554017 | 2-12      | 6.77934369832752742855
+-- 0           |  4.5703324099723 | 0         | 8613.6066481994459834 | 1         |   50.9466544734034446 | 1         | 6.72004815018900405669
+--(6 rows)
+\echo
+\echo Ranked anime ratings by scores, members, favorites, and review scores
+\echo RatingRankings
+SELECT * FROM RatingRankings;
+-- scorerating |     avgscore     | memrating |      avgmembers       | favtype |     avgfavorites      | revrating |       avgreview        
+---------------+------------------+-----------+-----------------------+---------+-----------------------+-----------+------------------------
+-- R           | 6.73897590361445 | R         |    79928.113453815261 | R       | 1386.6405622489959839 | PG-13     | 7.12364904601850527284
+-- PG-13       | 6.66720805101633 | R+        |    39862.240592930445 | PG-13   |  529.2026703866082104 | G         | 7.05871411180335665489
+-- R+          | 6.38890535917901 | PG-13     |    38735.013351933041 | R+      |  344.3169897377423033 | PG        | 7.04195565434404720089
+-- Rx          | 6.14207717569786 | PG        | 6806.4072043852779953 | PG      |   60.8441660140955364 | R         | 7.02539484379905941204
+-- PG          | 6.14202036021927 | Rx        | 3548.1338259441707718 | Rx      |   23.3152709359605911 | R+        | 6.48435529447732714754
+-- G           | 5.67498109010012 | G         | 2108.8395995550611791 | G       |   14.4636262513904338 | Rx        | 6.39617235345581802283
+--(6 rows)
+\echo
+\echo Now this leads to the question of how further filtering the data makes an effect:
+\echo Investigating if these results change when filtering to only take animes that have
+\echo been scored by >= 1000 users (yardstick decided by low stats of animes, and unfamiliarity
+\echo w/ less than 1000 scoredBy value)
+\echo 
+\echo Ranked types by scores, members, favorites, and review scores for animes w/ >= 1000 scoredBy
+\echo FilteredTypeRankings
+SELECT * FROM FilteredTypeRankings;
+-- scoretype |     avgscore     | memtype |      avgmembers       | favtype |     avgfavorites      | revtype |       avgreview        
+-------------+------------------+---------+-----------------------+---------+-----------------------+---------+------------------------
+-- Movie     | 7.35736641221373 | TV      |    98805.747758761206 | TV      | 1632.0647921760391198 | Movie   | 7.34551668755594283975
+-- TV        | 7.21827220863896 | Movie   |    43550.979643765903 | Movie   |  363.7608142493638677 | Music   |     7.2274774774774775
+-- Special   |  6.9590989010989 | ONA     |    20380.103773584906 | ONA     |  118.5141509433962264 | TV      | 7.21227599761338386442
+-- OVA       | 6.82237656352863 | Special |    18455.827472527473 | OVA     |   92.5582620144832126 | Special | 6.97061429806965521280
+-- Music     | 6.73464646464646 | OVA     |    16576.726135615537 | Music   |   36.0505050505050505 | OVA     | 6.79730009487943807744
+-- ONA       | 6.50688679245283 | Music   | 7734.9696969696969697 | Special |   35.2351648351648352 | ONA     | 6.74732538983580564274
+--(6 rows)
+\echo 
+\echo Ranked sources by scores, members, favorites, and review scores for animes w/ >= 1000 scoredBy
+\echo FilteredSourceRankings
+SELECT * FROM FilteredSourceRankings;
+--  scoresource  |     avgscore     |   memsource   |      avgmembers       |   favsource   |     avgfavorites      |   revsource   |       avgreview        
+-----------------+------------------+---------------+-----------------------+---------------+-----------------------+---------------+------------------------
+-- Novel         | 7.30726744186047 | Light novel   |   120159.965656565657 | Light novel   | 1320.1010101010101010 | Book          |     7.7117431588019823
+-- Manga         | 7.28494572911751 | Web manga     |    77566.710843373494 | Novel         | 1119.8546511627906977 | Novel         | 7.48415744547262552806
+-- Light novel   | 7.28424242424243 | Novel         |    74054.889534883721 | Web manga     | 1119.6746987951807229 | Manga         | 7.33846290123570063446
+-- Book          |             7.15 | Manga         |    66140.561113732893 | Manga         | 1028.8324681453515809 | Light novel   | 7.10172008588804217493
+-- 4-koma manga  | 7.08052287581699 | 4-koma manga  |    58347.784313725490 | Original      |  801.2125775022143490 | Original      | 7.10128231092427922953
+-- Music         | 7.05633333333333 | Original      |    49154.058458813109 | Visual novel  |  492.9881556683587140 | Other         |     7.0828224060606512
+-- Picture book  | 7.04142857142857 | Other         |    33731.930232558140 | 4-koma manga  |  489.2679738562091503 | Picture book  |     7.0722222222222222
+-- Web manga     | 7.01301204819277 | Visual novel  |    32710.928934010152 | Other         |  318.1744186046511628 | 4-koma manga  | 6.95627601586391390000
+-- Original      | 6.99813108945971 | Card game     |    31114.360000000000 | Music         |  223.7000000000000000 | Game          | 6.77293948626681982632
+-- Card game     |           6.7904 | Game          |    30633.506289308176 | Game          |  153.1918238993710692 | Unknown       | 6.76271213576689081037
+-- Game          | 6.78798742138365 | Digital manga |    30607.600000000000 | Card game     |  141.6400000000000000 | Visual novel  | 6.69066577829519166000
+-- Visual novel  | 6.76477157360406 | Music         |    27305.866666666667 | Book          |  105.4444444444444444 | Web manga     | 6.68795948597662183860
+-- Unknown       | 6.74092265943013 | Book          |    15578.925925925926 | Digital manga |   79.8000000000000000 | Music         |     6.5927083333333333
+-- Other         | 6.69162790697674 | Picture book  | 8950.7142857142857143 | Picture book  |   50.0000000000000000 | Card game     |     6.1005347593582888
+-- Radio         |             6.52 | Unknown       | 8566.8941655359565807 | Unknown       |   16.9905020352781547 | Digital manga |     6.0277777777777778
+-- Digital manga |             5.92 | Radio         | 3732.0000000000000000 | Radio         |   10.6666666666666667 | Radio         |     5.0000000000000000
+--(16 rows)
+\echo 
+\echo Ranked animes partitioned by episode ranges by scores, members, favorites, and review scores for animes w/ >= 1000 scoredBy
+\echo FilteredEpisodeRangeRankings
+SELECT * FROM FilteredEpisodeRangeRankings;
+-- scoreranges |     avgscore     | memranges |     avgmembers      | favranges |     avgfavorites      | revranges |       avgreview        
+---------------+------------------+-----------+---------------------+-----------+-----------------------+-----------+------------------------
+-- 53+         | 7.64579365079365 | 53+       | 121554.277777777778 | 53+       | 4628.4603174603174603 | 53+       |     8.1195417647926046
+-- 25-52       |  7.4066862170088 | 13-24     |  99397.002673796791 | 0         | 1957.4523809523809524 | 25-52     | 7.67866513608196705670
+-- 13-24       |  7.2377807486631 | 25-52     |  77432.107038123167 | 25-52     | 1851.6935483870967742 | 13-24     | 7.23363571712570413060
+-- 1           | 7.01407208962493 | 2-12      |  53369.145126663804 | 13-24     | 1594.9866310160427807 | 1         | 7.04705167945083172667
+-- 0           | 6.96880952380952 | 0         |  42982.142857142857 | 2-12      |  447.3198797767282095 | 2-12      | 6.85087951551394056202
+-- 2-12        | 6.92036066981537 | 1         |  26880.704335119338 | 1         |  160.3726254262055528 | 0         |     6.3340552584670232
+--(6 rows)
+\echo
+\echo Ranked anime ratings by scores, members, favorites, and review scores for animes w/ >= 1000 scoredBy
+\echo FilteredRatingRankings
+SELECT * FROM FilteredRatingRankings;
+-- scorerating |     avgscore     | memrating |      avgmembers       | favtype |     avgfavorites      | revrating |       avgreview        
+---------------+------------------+-----------+-----------------------+---------+-----------------------+-----------+------------------------
+-- R           | 7.23411067193675 | R         |   103280.474308300395 | R       | 1815.0737812911725955 | G         | 7.48469384814693739233
+-- PG-13       |   7.174904178448 | PG-13     |    60115.388312912347 | PG-13   |  832.3989946591266101 | PG        |     7.3356749014101955
+-- G           | 6.97498141263941 | R+        |    56218.826580226904 | R+      |  488.7406807131280389 | PG-13     | 7.18413728160661472712
+-- PG          | 6.94379518072289 | PG        |    24239.759036144578 | PG      |  229.0361445783132530 | R         |     7.1462292564293714
+-- R+          | 6.77335494327391 | G         |    14751.832713754647 | G       |  115.1840148698884758 | Rx        | 6.67428104575163398706
+-- Rx          | 6.66649727767695 | Rx        | 6085.8548094373865699 | Rx      |   46.5117967332123412 | R+        | 6.58896968908397555132
+--(6 rows)
+\echo
+\echo Follow up query to find the number of anime by source, as surprisingly Manga is not as high as expected
+\echo and to see if there is potential for differences to be cause by sample sizes
+\echo
+\echo Query for counts of anime by source filtered and unfiltered
+\echo SourceCounts
+SELECT * FROM SourceCounts;
+--    source     | count | filteredcount 
+-----------------+-------+---------------
+-- Unknown       |  3943 |           737
+-- Original      |  3253 |          1129
+-- Manga         |  3024 |          2119
+-- Visual novel  |   880 |           591
+-- Game          |   573 |           318
+-- Light novel   |   540 |           495
+-- Other         |   393 |            86
+-- Novel         |   342 |           172
+-- Music         |   314 |            30
+-- 4-koma manga  |   220 |           153
+-- Web manga     |   140 |            83
+-- Picture book  |    93 |             7
+-- Book          |    90 |            27
+-- Card game     |    57 |            25
+-- Digital manga |    10 |             5
+-- Radio         |     9 |             3
+--(16 rows)
+\echo
+\echo  -------------------- Investigative Question 2: ------------------
+\echo
+\i queriesquestion2.txt
+\echo Queries to answer the question: For each scoring category, what are the best and worst genres? 
+\echo Intermediate query calculating the average categorical scores for each anime.
+\echo animeCategoricalScores
+SELECT * FROM animeCategoricalScores;
+--  aid  | category  |   averageanimescore    
+---------+-----------+--------------------------
+--   908 | Sound     |     8.6666666666666667
+--  5310 | Sound     |    10.0000000000000000
+-- 27727 | Character |     7.6250000000000000
+-- 32282 | Story     |     6.1250000000000000
+-- 33985 | Character |     3.0000000000000000
+-- ...
+-- (23750 rows)
+\echo
+\echo Intermediate query calculating the average categorical scores for each genre. Also ranked them by averagescore with rank indicator columns 'descending' and 'ascending' to provide ranks for the next queries.
+\echo genreCategoricalScores
+SELECT * FROM genreCategoricalScores;
+-- category  |     genre     |      averagescore      | descending | ascending 
+-------------+---------------+------------------------+------------+------------
+-- Animation | Dementia      | 5.92243538687645995600 |         43 |         1
+-- Animation | Yuri          |     6.0833333333333333 |         42 |         2
+-- Animation | Hentai        | 6.41012685914260717428 |         41 |         3
+-- Animation | Yaoi          |     6.6285714285714286 |         40 |         4
+-- Animation | Horror        | 6.69533412083137742258 |         39 |         5
+-- ...
+-- (215 rows)
+\echo
+\echo Intermediate query finding the 5 genres that have the higheset score for each category.
+\echo maxGenre
+SELECT * FROM maxGenre;
+-- category  | bestgenre |     bestscore      
+-------------+-----------+--------------------
+-- Animation | Josei     | 8.0199946470103245
+-- Character | Josei     | 7.7320362759052569
+-- Enjoyment | Josei     | 7.6742767994727681
+-- Sound     | Josei     | 7.9065682482255830
+-- Story     | Josei     | 7.3673353118201942
+-- (5 rows)
+\echo
+\echo Intermediate query finding the 5 genres that have the lowest score for each category.
+\echo minGenre
+SELECT * FROM minGenre;
+-- category  | worstgenre |       worstscore       
+-------------+------------+------------------------
+-- Animation | Dementia   | 5.92243538687645995600
+-- Character | Dementia   | 4.76078682426628772667
+-- Enjoyment | Yuri       | 5.34166666666666666500
+-- Sound     | Yuri       | 5.25833333333333333000
+-- Story     | Yuri       | 4.13333333333333333000
+-- (5 rows)
+\echo
+\echo Final query that displays the best and worst genres for each scoring category.
+\echo bestWorstGenres
+SELECT * FROM bestWorstGenres;
+-- category  | bestgenre |     bestscore      | worstgenre |       worstscore       
+-------------+-----------+--------------------+------------+------------------------
+-- Animation | Josei     | 8.0199946470103245 | Dementia   | 5.92243538687645995600
+-- Character | Josei     | 7.7320362759052569 | Dementia   | 4.76078682426628772667
+-- Enjoyment | Josei     | 7.6742767994727681 | Yuri       | 5.34166666666666666500
+-- Sound     | Josei     | 7.9065682482255830 | Yuri       | 5.25833333333333333000
+-- Story     | Josei     | 7.3673353118201942 | Yuri       | 4.13333333333333333000
+-- (5 rows)
+\echo
+\echo Queries that answer the follow up question: Do female users tend to give higher scores?
+\echo Intermediate query displaying the average scores given by male users for each category.
+\echo maleScores
+SELECT * FROM maleScores;
+-- category  |  maleaveragescore  
+-------------+--------------------
+-- Story     | 6.7972404344847832
+-- Sound     | 7.4309130051864175
+-- Animation | 7.5472159702514923
+-- Enjoyment | 7.3254232312359331
+-- Character | 7.1015754966239358
+-- (5 rows)
+\echo
+\echo Intermediate query displaying the average scores given by female users for each category.
+\echo femaleScores
+SELECT * FROM femaleScores;
+-- category  | femaleaveragescore 
+-------------+--------------------
+-- Enjoyment | 7.8175026680896478
+-- Character | 7.5577069675255374
+-- Animation | 7.8859582253392285
+-- Story     | 7.3651471260862936
+-- Sound     | 7.7700869034913859
+-- (5 rows)
+\echo
+\echo Intermediate query displaying the average scores given by non-binary users for each category.
+\echo nonbinaryScores
+SELECT * FROM nonbinaryScores;
+-- category  | nonbinaryaveragescore 
+-------------+-----------------------
+-- Enjoyment |    7.0433070866141732
+-- Story     |    6.3385826771653543
+-- Animation |    7.2401574803149606
+-- Character |    6.5314960629921260
+-- Sound     |    7.2125984251968504
+-- (5 rows)
+\echo
+\echo Final query that displays the average scores of each category given by each gender group.
+\echo genderScores
+SELECT * FROM genderScores;
+-- category  |  maleaveragescore  | femaleaveragescore | nonbinaryaveragescore 
+-------------+--------------------+--------------------+-----------------------
+-- Enjoyment | 7.3254232312359331 | 7.8175026680896478 |    7.0433070866141732
+-- Story     | 6.7972404344847832 | 7.3651471260862936 |    6.3385826771653543
+-- Animation | 7.5472159702514923 | 7.8859582253392285 |    7.2401574803149606
+-- Character | 7.1015754966239358 | 7.5577069675255374 |    6.5314960629921260
+-- Sound     | 7.4309130051864175 | 7.7700869034913859 |    7.2125984251968504
+-- (5 rows)
+\echo
+\echo To examine for potential bias, we have the following queries to look at the number of users under each gender group and the number of anime for the genre Josei.
+\echo Query for number of users under each gender group.
+SELECT gender, count(*) FROM Review JOIN Scores ON Review.rID = Scores.rID JOIN MALUser ON Review.uID = MALUser.uID GROUP BY gender;
+--   gender   | count  
+--------------+--------
+-- Female     |  32795
+-- Non-Binary |   1270
+-- Male       | 102190
+-- (3 rows)
+\echo Query for number of anime for the genre Josei.
+SELECT genre, count(DISTINCT animeCategoricalScores.aid) FROM animeCategoricalScores JOIN genre ON animeCategoricalScores.aid = genre.aid GROUP BY genre HAVING genre = 'Josei';
+-- genre | count 
+---------+-------
+-- Josei |    47
+-- (1 row)
+\echo Query for the total number of anime with reviews.
+SELECT count(DISTINCT animeCategoricalScores.aid) FROM animeCategoricalScores JOIN genre ON animeCategoricalScores.aid = genre.aid;
+-- count 
+---------
+--  4750
+-- (1 row)
+\echo
+\echo  -------------------- Investigative Question 3: ------------------
+\echo
+\i queriesquestion3.txt
+\echo
+\echo What are users’ most favorite animes by their attributes (gender, age)?
+\echo
+\echo Gender
+\echo
+\echo Intermediate Query for ranked (row numbered for potential tie issues) top 5 animes based on male user reviews
+SELECT * FROM t1;
+-- aid  |              title               | rank 
+--------+----------------------------------+------
+-- 5114 | Fullmetal Alchemist: Brotherhood |    2
+-- 4181 | Clannad: After Story             |    3
+-- 9253 | Steins;Gate                      |    1
+-- 1535 | Death Note                       |    5
+-- 2001 | Tengen Toppa Gurren Lagann       |    4
+--(5 rows)
+\echo
+\echo Intermediate Query for ranked (row numbered for potential tie issues) top 5 animes based on female user reviews
+SELECT * FROM t2;
+--  aid  |              title               | rank 
+---------+----------------------------------+------
+--   853 | Ouran Koukou Host Club           |    3
+-- 11061 | Hunter x Hunter (2011)           |    5
+--  5114 | Fullmetal Alchemist: Brotherhood |    1
+--  9253 | Steins;Gate                      |    4
+--  1535 | Death Note                       |    2
+--(5 rows)
+\echo
+\echo Intermediate Query for ranked (row numbered for potential tie issues) top 5 animes based on non-binary user reviews
+SELECT * FROM t3;
+--  aid  |                     title                      | rank 
+---------+------------------------------------------------+------
+-- 11061 | Hunter x Hunter (2011)                         |    5
+-- 18679 | Kill la Kill                                   |    2
+--  5114 | Fullmetal Alchemist: Brotherhood               |    4
+--    32 | Neon Genesis Evangelion: The End of Evangelion |    3
+--  9756 | Mahou Shoujo Madoka★Magica                     |    1
+--(5 rows)
+\echo
+\echo Combined ranked top 5 animes per gender
+\echo GenderFavorites
+SELECT * FROM GenderFavorites;
+-- rank |        malefavoriteanime         |       femalefavoriteanime        |             nonbinaryfavoriteanime
+--------+----------------------------------+----------------------------------+------------------------------------------------
+--    1 | Steins;Gate                      | Fullmetal Alchemist: Brotherhood | Mahou Shoujo Madoka★Magica
+--    2 | Fullmetal Alchemist: Brotherhood | Death Note                       | Kill la Kill
+--    3 | Clannad: After Story             | Ouran Koukou Host Club           | Neon Genesis Evangelion: The End of Evangelion
+--    4 | Tengen Toppa Gurren Lagann       | Steins;Gate                      | Fullmetal Alchemist: Brotherhood
+--    5 | Death Note                       | Hunter x Hunter (2011)           | Hunter x Hunter (2011)
+--(5 rows)
+\echo
+\echo Age
+\echo
+\echo Intermediate query for classifying users into age groups by extracting year from user ages, and joining
+\echo them with their favorite animes
+SELECT * FROM userFavorites;
+--   uid   |  aid  | agegroup
+-----------+-------+----------
+--  353967 |   122 | 19 - 25
+-- 1397691 | 11757 | 26 - 30
+--   75266 |  1575 | 31 - 40
+--   11188 |   387 | 26 - 30
+--    3304 |  7674 | 31 - 40
+--  290560 | 33489 | 26 - 30
+-- 2827233 |  5114 | 19 - 25
+--   54773 |   504 | 31 - 40
+-- 5009346 | 31240 | 19 - 25
+-- 1068961 |  4181 | 26 - 30
+--...
+--(46458 rows)
+\echo
+\echo Intermediate query for counts for favorited animes by age group
+SELECT * FROM ageFavorites;
+-- agegroup |  aid  |                                           title                                           | numfavorited 
+------------+-------+-------------------------------------------------------------------------------------------+--------------
+-- 1 - 18   |     1 | Cowboy Bebop                                                                              |            7
+-- 19 - 25  |     1 | Cowboy Bebop                                                                              |          132
+-- 26 - 30  |     1 | Cowboy Bebop                                                                              |          185
+-- 31 - 40  |     1 | Cowboy Bebop                                                                              |          185
+-- 40+      |     1 | Cowboy Bebop                                                                              |           16
+-- 1 - 18   |     5 | Cowboy Bebop: Tengoku no Tobira                                                           |            1
+-- 26 - 30  |     5 | Cowboy Bebop: Tengoku no Tobira                                                           |            2
+-- 31 - 40  |     5 | Cowboy Bebop: Tengoku no Tobira                                                           |            3
+-- 19 - 25  |     6 | Trigun                                                                                    |           23
+--...
+--(5730 rows)
+\echo
+\echo Intermediate query for top 5 favorited animes in age group 1-18
+SELECT * FROM c1Favorites;
+--  aid  |              title               | row_number 
+---------+----------------------------------+------------
+--  4181 | Clannad: After Story             |          1
+--  5114 | Fullmetal Alchemist: Brotherhood |          2
+-- 11061 | Hunter x Hunter (2011)           |          3
+--  9756 | Mahou Shoujo Madoka★Magica       |          4
+--    30 | Neon Genesis Evangelion          |          5
+--(5 rows)
+\echo
+\echo Intermediate query for top 5 favorited animes in age group 19-25
+SELECT * FROM c2Favorites;
+--  aid  |              title               | row_number 
+---------+----------------------------------+------------
+--  9253 | Steins;Gate                      |          1
+--  5114 | Fullmetal Alchemist: Brotherhood |          2
+-- 11061 | Hunter x Hunter (2011)           |          3
+--  4181 | Clannad: After Story             |          4
+--  1535 | Death Note                       |          5
+--(5 rows)
+\echo
+\echo Intermediate query for top 5 favorited animes in age group 26-30
+SELECT * FROM c3Favorites;
+--  aid  |              title               | row_number 
+---------+----------------------------------+------------
+--  5514 | Fullmetal Alchemist: Brotherhood |          1
+--  9253 | Steins;Gate                      |          2
+--  4181 | Clannad: After Story             |          3
+--  1535 | Death Note                       |          4
+--  1575 | Code Geass: Hangyaku no Lelouch  |          5
+--(5 rows)
+\echo
+\echo Intermediate query for top 5 favorited animes in age group 31-40
+SELECT * FROM c4Favorites;
+--  aid  |              title               | row_number 
+---------+----------------------------------+------------
+--  1535 | Death Note                       |          1
+--     1 | Cowboy Bebop                     |          2
+--  5514 | Fullmetal Alchemist: Brotherhood |          3
+--  2001 | Tengen Toppa Gurren Lagann       |          4
+--    21 | One Piece                        |          5
+--(5 rows)
+\echo
+\echo Intermediate query for top 5 favorited animes in age group 40+
+SELECT * FROM c5Favorites;
+--  aid  |           title            | row_number 
+---------+----------------------------+------------
+--  2001 | Tengen Toppa Gurren Lagann |          1
+--     1 | Cowboy Bebop               |          2
+--   457 | Mushishi                   |          3
+--  1535 | Death Note                 |          4
+--  4224 | Toradora!                  |          5
+--(5 rows)
+\echo
+\echo Query for ranked top 5 animes per age group
+\echo ageTop5
+SELECT * FROM ageTop5;
+-- rank |             top1to18             |            top19to25             |            top26to30             |            top31to40             |          top40up
+--------+----------------------------------+----------------------------------+----------------------------------+----------------------------------+----------------------------
+--    1 | Clannad: After Story             | Steins;Gate                      | Fullmetal Alchemist: Brotherhood | Death Note                       | Tengen Toppa Gurren Lagann
+--    2 | Fullmetal Alchemist: Brotherhood | Fullmetal Alchemist: Brotherhood | Steins;Gate                      | Cowboy Bebop                     | Cowboy Bebop
+--    3 | Hunter x Hunter (2011)           | Hunter x Hunter (2011)           | Clannad: After Story             | Fullmetal Alchemist: Brotherhood | Mushishi
+--    4 | Mahou Shoujo Madoka★Magica       | Clannad: After Story             | Death Note                       | Tengen Toppa Gurren Lagann       | Death Note
+--    5 | Neon Genesis Evangelion          | Death Note                       | Code Geass: Hangyaku no Lelouch  | One Piece                        | Toradora!
+--(5 rows)
+\echo
+\echo
+\echo Now this leads to the question of: whether or not these resulting top anime actually correspond
+\echo to their age/gender demographic genres ('Kids', 'Shounen', 'Shoujo', 'Seinen', 'Josei')?
+\echo
+\echo Query for finding gender/age demographic genre with animes for top 5 anime for male users
+\echo MaleGenre
+SELECT * FROM MaleGenre;
+--              title               |  genre  
+------------------------------------+---------
+-- Fullmetal Alchemist: Brotherhood | Shounen
+-- Death Note                       | Shounen
+--(2 rows)
+\echo
+\echo Query for finding gender/age demographic genre with animes for top 5 anime for female users
+\echo FemaleGenre
+SELECT * FROM FemaleGenre;
+--              title               |  genre  
+------------------------------------+---------
+-- Ouran Koukou Host Club           | Shoujo
+-- Hunter x Hunter (2011)           | Shounen
+-- Fullmetal Alchemist: Brotherhood | Shounen
+-- Death Note                       | Shounen
+--(4 rows)
+\echo
+\echo Query for finding gender/age demographic genre with animes for top 5 anime for non-binary users
+\echo NonBinaryGenre
+SELECT * FROM NonBinaryGenre;
+--              title               |  genre  
+------------------------------------+---------
+-- Hunter x Hunter (2011)           | Shounen
+-- Fullmetal Alchemist: Brotherhood | Shounen
+--(2 rows)
+\echo
+\echo Query for finding gender/age demographic genre with animes for top 5 anime for users age 1-18
+\echo FirstAgeGenre
+SELECT * FROM FirstAgeGenre;
+--              title               |  genre  
+------------------------------------+---------
+-- Hunter x Hunter (2011)           | Shounen
+-- Fullmetal Alchemist: Brotherhood | Shounen
+--(2 rows)
+\echo
+\echo Query for finding gender/age demographic genre with animes for top 5 anime for users age 19-25
+\echo SecondAgeGenre
+SELECT * FROM SecondAgeGenre;
+--              title               |  genre  
+------------------------------------+---------
+-- Hunter x Hunter (2011)           | Shounen
+-- Fullmetal Alchemist: Brotherhood | Shounen
+-- Death Note                       | Shounen
+--(3 rows)
+\echo
+\echo Query for finding gender/age demographic genre with animes for top 5 anime for users age 26-30
+\echo ThirdAgeGenre
+SELECT * FROM ThirdAgeGenre;
+--              title               |  genre
+------------------------------------+---------
+-- Fullmetal Alchemist: Brotherhood | Shounen
+-- Death Note                       | Shounen
+--(2 rows)
+\echo
+\echo Query for finding gender/age demographic genre with animes for top 5 anime for users age 31-40
+\echo FourthAgeGenre
+SELECT * FROM FourthAgeGenre;
+--              title               |  genre
+------------------------------------+---------
+-- One Piece                        | Shounen
+-- Fullmetal Alchemist: Brotherhood | Shounen
+-- Death Note                       | Shounen
+--(3 rows)
+\echo
+\echo Query for finding gender/age demographic genre with animes for top 5 anime for users age 40+
+\echo FifthAgeGenre
+SELECT * FROM FifthAgeGenre;
+--   title    |  genre
+--------------+---------
+-- Death Note | Shounen
+-- Mushishi   | Seinen
+--(2 rows)

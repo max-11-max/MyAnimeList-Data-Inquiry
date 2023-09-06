@@ -1,0 +1,209 @@
+-- Intermediate view for classifying animes with episode ranges
+CREATE VIEW EpisodesRanges AS
+SELECT aID, score, scoredBy, members, favorites,
+	CASE
+		WHEN (episodes = 0) THEN '0'
+		WHEN (episodes = 1) THEN '1'
+		WHEN (episodes >= 2 AND episodes <= 12) THEN '2-12'
+		WHEN (episodes >= 13 AND episodes <= 24) THEN '13-24'
+		WHEN (episodes >= 25 AND episodes <= 52) THEN '25-52'
+		WHEN (episodes >= 53) THEN '53+'
+	END as ranges
+FROM anime;
+
+-- Intermediate view for aggregating review scores per anime from review
+CREATE VIEW ReviewScores AS
+SELECT anime.aID, type, source, rating, AVG(review.overallScore) as score, ranges,
+anime.scoredBy
+FROM anime JOIN review ON anime.aID = review.aID
+JOIN episodesRanges ON anime.aID = episodesRanges.aID
+GROUP BY anime.aID, ranges;
+
+-- View for ranking types by scores, members, favorites, and review scores
+-- Ranked (row_numbered, to eliminate potential tie issues) the aggregated scores, members, favorites,
+-- and review scores, and combined into one table
+CREATE VIEW TypeRankings AS
+SELECT t1.type as ScoreType, AvgScore, t2.type as MemType, AvgMembers, t3.type as FavType, AvgFavorites,
+t4.type as RevType, AvgReview
+FROM (SELECT type, AVG(score) as AvgScore, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM Anime
+GROUP BY type) t1 JOIN
+(SELECT type, AVG(members) as AvgMembers, ROW_NUMBER() OVER (ORDER BY AVG(members) DESC)
+FROM Anime
+GROUP BY type) t2 ON t1.row_number = t2.row_number JOIN
+(SELECT type, AVG(favorites) as AvgFavorites, ROW_NUMBER() OVER (ORDER BY AVG(favorites) DESC)
+FROM Anime
+GROUP BY type) t3 ON t1.row_number = t3.row_number JOIN
+(SELECT type, AVG(score) AS AvgReview, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM ReviewScores
+GROUP BY type) t4 ON t1.row_number = t4.row_number;
+
+-- View for ranking sources by scores, members, favorites, and review scores
+-- Ranked (row_numbered, to eliminate potential tie issues) the aggregated scores, members, favorites,
+-- and review scores, and combined into one table
+CREATE VIEW SourceRankings AS
+SELECT t1.source AS ScoreSource, AvgScore, t2.source AS MemSource, AvgMembers, t3.source AS FavSource, AvgFavorites,
+t4.source AS RevSource, AvgReview
+FROM (SELECT source, AVG(score) as AvgScore, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM Anime
+GROUP BY source) t1 JOIN
+(SELECT source, AVG(members) as AvgMembers, ROW_NUMBER() OVER (ORDER BY AVG(members) DESC)
+FROM Anime
+GROUP BY source) t2 ON t1.row_number = t2.row_number JOIN
+(SELECT source, AVG(favorites) as AvgFavorites, ROW_NUMBER() OVER (ORDER BY AVG(favorites) DESC)
+FROM Anime
+GROUP BY source) t3 ON t1.row_number = t3.row_number JOIN
+(SELECT source, AVG(score) AS AvgReview, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM ReviewScores
+GROUP BY source) t4 ON t1.row_number = t4.row_number;
+
+-- View for ranking animes partitioned by episode ranges by scores, members, favorites, and review scores
+-- Ranked (row_numbered, to eliminate potential tie issues) the aggregated scores, members, favorites,
+-- and review scores, and combined into one table
+CREATE VIEW EpisodeRangeRankings AS
+SELECT t1.ranges as ScoreRanges, AvgScore, t2.ranges as MemRanges, AvgMembers, t3.ranges as FavRanges, AvgFavorites,
+t4.ranges as RevRanges, AvgReview
+FROM (SELECT ranges, AVG(score) as AvgScore, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM episodesRanges
+GROUP BY ranges) t1 JOIN
+(SELECT ranges, AVG(members) as AvgMembers, ROW_NUMBER() OVER (ORDER BY AVG(members) DESC)
+FROM episodesRanges
+GROUP BY ranges) t2 on t1.row_number = t2.row_number JOIN
+(SELECT ranges, AVG(favorites) as AvgFavorites, ROW_NUMBER() OVER (ORDER BY AVG(favorites) DESC)
+FROM episodesRanges
+GROUP BY ranges) t3 on t1.row_number = t3.row_number JOIN
+(SELECT ranges, AVG(score) AS AvgReview, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM ReviewScores
+GROUP BY ranges) t4 ON t1.row_number = t4.row_number;
+
+-- View for ranking anime ratings by scores, members, favorites, and review scores
+-- Ranked (row_numbered, to eliminate potential tie issues) the aggregated scores, members, favorites,
+-- and review scores, and combined into one table
+CREATE VIEW RatingRankings AS
+SELECT t1.rating as ScoreRating, AvgScore, t2.rating as MemRating, AvgMembers, t3.rating as FavType, AvgFavorites,
+t4.rating as RevRating, AvgReview
+FROM (SELECT rating, AVG(score) as AvgScore, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM Anime
+GROUP BY rating) t1 JOIN
+(SELECT rating, AVG(members) as AvgMembers, ROW_NUMBER() OVER (ORDER BY AVG(members) DESC)
+FROM Anime
+GROUP BY rating) t2 ON t1.row_number = t2.row_number JOIN
+(SELECT rating, AVG(favorites) as AvgFavorites, ROW_NUMBER() OVER (ORDER BY AVG(favorites) DESC)
+FROM Anime
+GROUP BY rating) t3 ON t1.row_number = t3.row_number JOIN
+(SELECT rating, AVG(score) AS AvgReview, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM ReviewScores
+GROUP BY rating) t4 ON t1.row_number = t4.row_number;
+
+-- Followup queries to investigate if these results change when filtering to only take animes
+-- that have been scored by >= 1000 users (yardstick decided by low stats of animes, and unfamiliarity
+-- w/ less than 1000 scoredBy value when inspecting animes sorted by scoredBy)
+
+-- View for ranking types by scores, members, favorites, and review scores for animes w/ >= 1000 scoredBy
+-- Ranked (row numbered, to eliminate potential tie issues) the aggregated scores, members, favorites,
+-- and review scores, and combined into one table
+CREATE VIEW FilteredTypeRankings AS
+SELECT t1.type as ScoreType, AvgScore, t2.type as MemType, AvgMembers, t3.type as FavType, AvgFavorites,
+t4.type as RevType, AvgReview
+FROM (SELECT type, AVG(score) as AvgScore, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY type) t1 JOIN
+(SELECT type, AVG(members) as AvgMembers, ROW_NUMBER() OVER (ORDER BY AVG(members) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY type) t2 on t1.row_number = t2.row_number JOIN
+(SELECT type, AVG(favorites) as AvgFavorites, ROW_NUMBER() OVER (ORDER BY AVG(favorites) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY type) t3 on t1.row_number = t3.row_number JOIN
+(SELECT type, AVG(score) AS AvgReview, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM ReviewScores
+WHERE scoredBy >= 1000
+GROUP BY type) t4 ON t1.row_number = t4.row_number;
+
+-- View for ranking sources by scores, members, favorites, and review scores for animes w/ >= 1000 scoredBy
+-- Ranked (row numbered, to eliminate potential tie issues) the aggregated scores, members, favorites,
+-- and review scores, and combined into one table
+CREATE VIEW FilteredSourceRankings AS
+SELECT t1.source AS ScoreSource, AvgScore, t2.source AS MemSource, AvgMembers, t3.source AS FavSource, AvgFavorites,
+t4.source AS RevSource, AvgReview
+FROM (SELECT source, AVG(score) as AvgScore, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY source) t1 JOIN
+(SELECT source, AVG(members) as AvgMembers, ROW_NUMBER() OVER (ORDER BY AVG(members) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY source) t2 on t1.row_number = t2.row_number JOIN
+(SELECT source, AVG(favorites) as AvgFavorites, ROW_NUMBER() OVER (ORDER BY AVG(favorites) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY source) t3 on t1.row_number = t3.row_number JOIN
+(SELECT source, AVG(score) AS AvgReview, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM ReviewScores
+WHERE scoredBy >= 1000
+GROUP BY source) t4 ON t1.row_number = t4.row_number;
+
+-- View for ranking animes partitioned by episode ranges by scores, members, favorites, and review
+-- scores for animes w/ >= 1000 scoredBy
+-- Ranked (row numbered, to eliminate potential tie issues) the aggregated scores, members, favorites,
+-- and review scores, and combined into one table
+CREATE VIEW FilteredEpisodeRangeRankings AS
+SELECT t1.ranges as ScoreRanges, AvgScore, t2.ranges as MemRanges, AvgMembers, t3.ranges as FavRanges, AvgFavorites,
+t4.ranges as RevRanges, AvgReview
+FROM (SELECT ranges, AVG(score) as AvgScore, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM episodesRanges
+WHERE scoredBy >= 1000
+GROUP BY ranges) t1 JOIN
+(SELECT ranges, AVG(members) as AvgMembers, ROW_NUMBER() OVER (ORDER BY AVG(members) DESC)
+FROM episodesRanges
+WHERE scoredBy >= 1000
+GROUP BY ranges) t2 on t1.row_number = t2.row_number JOIN
+(SELECT ranges, AVG(favorites) as AvgFavorites, ROW_NUMBER() OVER (ORDER BY AVG(favorites) DESC)
+FROM episodesRanges
+WHERE scoredBy >= 1000
+GROUP BY ranges) t3 on t1.row_number = t3.row_number JOIN
+(SELECT ranges, AVG(score) AS AvgReview, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM ReviewScores
+WHERE scoredBy >= 1000
+GROUP BY ranges) t4 ON t1.row_number = t4.row_number;
+
+-- View for ranking anime ratings by scores, members, favorites, and review scores for animes w/ >= 1000 scoredBy
+-- Ranked (row_numbered, to eliminate potential tie issues) the aggregated scores, members, favorites,
+-- and review scores, and combined into one table
+CREATE VIEW FilteredRatingRankings AS
+SELECT t1.rating as ScoreRating, AvgScore, t2.rating as MemRating, AvgMembers, t3.rating as FavType, AvgFavorites,
+t4.rating as RevRating, AvgReview
+FROM (SELECT rating, AVG(score) as AvgScore, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY rating) t1 JOIN
+(SELECT rating, AVG(members) as AvgMembers, ROW_NUMBER() OVER (ORDER BY AVG(members) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY rating) t2 ON t1.row_number = t2.row_number JOIN
+(SELECT rating, AVG(favorites) as AvgFavorites, ROW_NUMBER() OVER (ORDER BY AVG(favorites) DESC)
+FROM Anime
+WHERE scoredBy >= 1000
+GROUP BY rating) t3 ON t1.row_number = t3.row_number JOIN
+(SELECT rating, AVG(score) AS AvgReview, ROW_NUMBER() OVER (ORDER BY AVG(score) DESC)
+FROM ReviewScores
+WHERE scoredBy >= 1000
+GROUP BY rating) t4 ON t1.row_number = t4.row_number;
+
+-- Short follow up to find the number of anime by source, as surprisingly Manga is not as high as expected
+-- and to see if there is potential for differences to be cause by sample sizes, etc
+
+-- View for counts of anime by source with and without filtering
+CREATE VIEW SourceCounts AS
+SELECT t1.source, t1.count, t2.count as filteredCount
+FROM (SELECT source, count(aID)
+FROM anime
+GROUP BY source
+ORDER BY count(aID) desc) t1 JOIN
+(SELECT source, count(aID)
+FROM anime
+WHERE scoredBy >= 1000
+GROUP BY source
+ORDER BY count(aID) desc) t2 ON t1.source = t2.source;

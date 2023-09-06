@@ -1,0 +1,61 @@
+-- Queries to answer the question: For each scoring category, what are the best and worst genres? 
+
+-- View displaying the average categorical scores for each anime.
+CREATE VIEW animeCategoricalScores AS
+SELECT Review.aid, category, AVG(score) as averageAnimeScore
+FROM Review JOIN Scores ON Review.rid = Scores.rid
+GROUP BY Review.aid, category;
+
+-- View displaying the average categorical scores for each genre.
+CREATE VIEW genreCategoricalScores AS
+SELECT category, genre, AVG(averageAnimeScore) as averageScore,
+RANK() OVER (PARTITION BY category ORDER BY avg(averageAnimeScore) DESC) as descending,
+RANK() OVER (PARTITION BY category ORDER BY avg(averageAnimeScore) ASC) as ascending
+FROM animeCategoricalScores JOIN Genre ON animeCategoricalScores.aid = Genre.aid
+GROUP BY category, genre;
+
+-- View displaying the genres that have the higheset score for each category.
+CREATE VIEW maxGenre AS
+SELECT category, genre as bestGenre, averageScore as bestScore
+FROM genreCategoricalScores
+WHERE descending = 1;
+
+-- View displaying the genres that have the lowest score for each category. 
+CREATE VIEW minGenre AS
+SELECT category, genre as worstGenre, averageScore as worstScore
+FROM genreCategoricalScores
+WHERE ascending = 1;
+
+--- A final table that displays the best and worst genres for each scoring category.
+CREATE VIEW bestWorstGenres AS
+SELECT maxGenre.category, bestGenre, bestScore, worstGenre, worstScore
+FROM maxGenre JOIN minGenre ON maxGenre.category = minGenre.category;
+
+
+-- Queries that answer the follow up question: Do female users tend to give higher scores?
+
+-- View displaying the average scores given by male users for each category.
+CREATE VIEW maleScores AS
+SELECT category, AVG(score) as maleAverageScore
+FROM Review JOIN Scores ON Review.rID = Scores.rID JOIN MALUser ON Review.uID = MALUser.uID
+GROUP BY category, gender
+HAVING gender = 'Male';
+
+-- View displaying the average scores given by female users for each category.
+CREATE VIEW femaleScores AS
+SELECT category, AVG(score) as femaleAverageScore
+FROM MALUser JOIN Review ON MALUser.uID = Review.uID JOIN Scores ON Review.rID = Scores.rID
+GROUP BY category, gender
+HAVING gender = 'Female';
+
+-- View displaying the average scores given by non-binary users for each category.
+CREATE VIEW nonbinaryScores AS
+SELECT category, AVG(score) as nonbinaryAverageScore
+FROM MALUser JOIN Review ON MALUser.uID = Review.uID JOIN Scores ON Review.rID = Scores.rID
+GROUP BY category, gender
+HAVING gender = 'Non-Binary';
+
+-- A final table that displays the average scores of each category given by each gender group.
+CREATE VIEW genderScores AS 
+SELECT maleScores.category, maleAverageScore, femaleAverageScore, nonbinaryAverageScore
+FROM maleScores JOIN femaleScores ON maleScores.category = femaleScores.category JOIN nonbinaryScores ON femaleScores.category = nonbinaryScores.category;
